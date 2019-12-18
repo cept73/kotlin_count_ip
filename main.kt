@@ -12,12 +12,12 @@ import java.io.File // Требуется работа с файлами
 import java.math.BigInteger // Будем вместо хэшей засовывать в целое
 
 
-// Константы
+// Конфигурация
 val DEFAULT_INPUT_FILENAME: String = "ips-list.txt"
 val DEBUG: Boolean = true
 
 
-// Переменные
+// Результат выполнения
 var ipMap = mutableMapOf<BigInteger, Boolean>()
 var ipCount: Int = 0
 
@@ -200,7 +200,8 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
         else if (ipa.endsWith("::")) 
             hextets[0] = "0"
         if (ipa == "::") hextets[1] = "0"        
-        if (len > 8 || (len == 8 && hextets.any { it == "" }) || hextets.count { it == "" } > 1)
+        if (len > 8 || (len == 8 && hextets.any { it == "" })
+            || hextets.count { it == "" } > 1)
             return INVALID
         if (len < 8) {
             var insertions = 8 - len
