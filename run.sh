@@ -1,9 +1,9 @@
 #!/bin/bash
 
-COMPILED=_build/main.jar
+# Настройки
+APP_FILE=_build/main.jar
 
-if [ -f "$COMPILED" ]; then
-    java -jar $COMPILED $1
-else
-    echo Сначала скомпилируйте программу с помощью build.sh
+# Проверяем существование файла, если есть - запускаем
+if [ -f "$APP_FILE" ]; then java -jar $APP_FILE $1
+else echo Сначала скомпилируйте программу с помощью build.sh
 fi
