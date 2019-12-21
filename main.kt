@@ -126,7 +126,7 @@ fun setNodeState( addressToNode: Long, stateNew: BigInteger )
 }
 
 
-fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int): BigInteger =
+fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int) =
     nodeState.or(powerOf2[addressToPoint])
 
 
