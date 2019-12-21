@@ -159,7 +159,7 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
 
 
 /*
- * Готовим парсинг IP
+ * Готовим парсинг IPv4
  * 
  * Для каждого IP (например 1.2.3.4)
  * 1) берется первые три числа - называем это нодой. 
@@ -178,10 +178,6 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
  *      на хранение поинтов. Максимальное число нод - 256*256*256
  *      = 16 777 216 (16M), в каждой по 32Б => 
  *      Максимальный размер в памяти 512MB
- */
-
-/**
- * Может быть только IPv4
  */
 fun ipAddressParse(ipAddress: String): IPAddressComponents {
     var nodeAddress: Long = 0
