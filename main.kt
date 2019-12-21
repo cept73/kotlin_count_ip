@@ -17,8 +17,6 @@ val DEFAULT_INPUT_FILENAME: String = "ips-list.txt"
 var DEBUG: Boolean = true
 
 // Компоненты для хранения
-enum class AddressSpace { IPv4, IPv6, Invalid }
-
 data class IPAddressComponents(
     val addressToNode   : Long,
     val addressToPoint  : Int
@@ -126,7 +124,7 @@ fun setNodeState( addressToNode: Long, stateNew: BigInteger )
 }
 
 
-fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int): BigInteger =
+fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int) =
     nodeState.or(powerOf2[addressToPoint])
 
 
