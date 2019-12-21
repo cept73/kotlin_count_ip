@@ -1,10 +1,10 @@
 /**
  * Определение количества IP адресов в файле
  * ===============================================================
- * v1.0 by Cept
+ * v1.1 by Cept
  *
  * В качестве параметра коммандной строки нужно передать имя файла
- * либо будет использоваться из DEFAULT_INPUT_FILENAME 
+ * либо будет использоваться из DEFAULT_INPUT_FILENAME
  */
 package ip_count
 
@@ -14,12 +14,13 @@ import java.math.BigInteger // Будем вместо хэшей засовыв
 
 // Конфигурация
 val DEFAULT_INPUT_FILENAME: String = "ips-list.txt"
-val DEBUG: Boolean = true
+var DEBUG: Boolean = true
 
 
 // Результат выполнения
-var ipMap = mutableMapOf<BigInteger, Boolean>()
+var ipMap = mutableMapOf<BigInteger, BigInteger>()
 var ipCount: Int = 0
+val powerOf2 = mutableMapOf<Int, BigInteger>()
 
 
 /**
@@ -30,6 +31,9 @@ var ipCount: Int = 0
 fun main(args: Array<String>) {
     // Определяемся с входным файлом
     val inputFileName = getFileNameFrom(args)
+
+    // Считаем степени 2-ки
+    initPowerOf2()
 
     // Ждем от пользователя действительное имя файла
     if (!isFileExists( inputFileName )) {
@@ -47,7 +51,8 @@ fun main(args: Array<String>) {
         println(e)
     }
     finally {
-        println("Количество адресов: $ipCount")
+        if (DEBUG) println(ipMap)
+        println("\nКоличество адресов: $ipCount\n")
     }
 }
 
@@ -55,7 +60,7 @@ fun main(args: Array<String>) {
 /**
  * Основная функция
  */
-@Suppress("UNUSED_VARIABLE")
+//@Suppress("UNUSED_VARIABLE")
 // addressSpace не используем, иначе будет предупреждение
 private fun parserFun(it: Any?): Unit {
     // Разбираем IP из строки
@@ -64,18 +69,60 @@ private fun parserFun(it: Any?): Unit {
     // Неправильный адрес?
     if (ipParsed == INVALID) return
 
-    // Разложим на хэш, тип адреса и порт
-    val (ourHash, addressSpace, port) = ipParsed
+    // Разложим адрес на ноду, поинта, тип адреса и порт
+    val (addressToNode, addressToPoint) = ipParsed
 
     // Уже был такой адрес? Пропускаем
-    if (ourHash in ipMap) return
+    val stateOld = getNodeState( addressToNode )
+    val stateNew = getStateWithPoint( stateOld, addressToPoint )
 
-    // Добавляем в карту хэшей и радуемся
-    ipMap[ ourHash ] = true
-    ipCount = ipCount + 1
+    // Если еще не добавляли, состояние поменяется
+    if (stateNew != stateOld) {
+        // Добавляем в карту хэшей и радуемся
+        setNodeState( addressToNode, stateNew )
+        ipCount = ipCount + 1
 
-    // Если нужно отладку, выводим IP и хэш
-    if (DEBUG) println("$it => ${ourHash.toString(16)}")
+        // Если нужно отладку, выводим IP
+        if (DEBUG) {
+            println(it)
+            // Отключим при количестве больше 10
+            if (ipCount > 10) {
+                DEBUG = false
+                println("Отладка отключена")
+            }
+        }
+    }
+}
+
+
+/* Считаем степени 2-ки от 0 до 255 степени */
+fun initPowerOf2()
+{
+    var value: BigInteger = BigInteger.valueOf(1)
+    for (index in 0..255) {
+        powerOf2[ index ] = value
+        value += value
+    }
+}
+
+
+fun getNodeState(addressToNode: BigInteger): BigInteger =
+    ipMap[addressToNode] ?: BigInteger.ZERO
+
+
+fun setNodeState( addressToNode: BigInteger, stateNew: BigInteger )
+{
+    ipMap[addressToNode] = stateNew
+}
+
+
+fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int): BigInteger =
+    nodeState.or(powerOf2[addressToPoint])
+
+
+fun setNodeWithPointState(addressToNode: BigInteger, stateNew: BigInteger?)
+{
+    ipMap[addressToNode] = stateNew ?: BigInteger.ZERO
 }
 
 
@@ -116,113 +163,36 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
  * можно часть проверок поотключать. Хотя мало ли что в файл введут?
  */
 enum class AddressSpace { IPv4, IPv6, Invalid }
-    
+
 data class IPAddressComponents(
-    val address         : BigInteger,
-    val addressSpace    : AddressSpace,
-    val port            : Int  // -1 значит 'не указан'
+    val addressToNode   : BigInteger,
+    val addressToPoint  : Int
 )
-   
-val INVALID = IPAddressComponents(BigInteger.ZERO, AddressSpace.Invalid, 0)
+
+val INVALID = IPAddressComponents(BigInteger.ZERO, 0)
 
 /**
- * Ситуации могут быть разные:
- *   127.0.0.1
- *   127.0.0.1:80
- *   ::1
- *   [::1]:80
- *   2000:2500:0:1::4500:93e3
- *   [2000:2500:0:1::4500:93e3]:80
- *   ::ffff:192.168.1.16
- *   [::ffff:192.168.1.16]:80
- *   1::
- *   ::
- *   256.0.0.0
- *   ::ffff:127.0.0.0.1
- * Или вообще с неправильными адресами:
- *   spam text
- *   (пустая строка)
- *   1000.1.1.1
+ * Может быть только IPv4
  */
 fun ipAddressParse(ipAddress: String): IPAddressComponents {
-    var addressSpace = AddressSpace.IPv4
-    var ipa = ipAddress.toLowerCase()
-    var port = -1
-    var trans = false
-
-    if (ipa == "") return INVALID
-
-    if (ipa.startsWith("::ffff:") && '.' in ipa) {
-        addressSpace = AddressSpace.IPv6
-        trans = true
-        ipa = ipa.drop(7)
-    }
-    else if (ipa.startsWith("[::ffff:") && '.' in ipa) {
-        addressSpace = AddressSpace.IPv6
-        trans = true
-        ipa = ipa.drop(8).replace("]", "")
-    } 
-    val octets = ipa.split('.').reversed().toTypedArray()
     var address = BigInteger.ZERO
-    if (octets.size == 4) {
-        val split = octets[0].split(':')
-        if (split.size == 2) {
-            val temp = split[1].toIntOrNull()
-            if (temp == null || temp !in 0..65535) return INVALID                
-            port = temp
-            octets[0] = split[0]
-        }
 
-        for (i in 0..3) {
-            val num = octets[i].toLongOrNull()
-            if (num == null || num !in 0..255) return INVALID
-            val bigNum = BigInteger.valueOf(num)
-            address = address.or(bigNum.shiftLeft(i * 8))
-        }
+    // Разбиваем адрес на куски
+    val octets = ipAddress.split('.').reversed().toTypedArray()
 
-        if (trans) address += BigInteger("ffff00000000", 16)
+    // Вычисляем хэш
+    for (i in 1..3) {
+        val num = octets[i].toLong()
+        val bigNum = BigInteger.valueOf(num)
+        address = address.or(bigNum.shiftLeft((i - 1) * 8))
     }
-    else if (octets.size == 1) {
-        addressSpace = AddressSpace.IPv6
-        if (ipa[0] == '[') {
-            ipa = ipa.drop(1)
-            val split = ipa.split("]:")
-            if (split.size != 2) return INVALID
-            val temp = split[1].toIntOrNull()
-            if (temp == null || temp !in 0..65535) return INVALID
-            port = temp
-            ipa = ipa.dropLast(2 + split[1].length)
-        }
-        val hextets = ipa.split(':').reversed().toMutableList()
-        val len = hextets.size
-        if (ipa.startsWith("::")) 
-            hextets[len - 1] = "0"
-        else if (ipa.endsWith("::")) 
-            hextets[0] = "0"
-        if (ipa == "::") hextets[1] = "0"        
-        if (len > 8 || (len == 8 && hextets.any { it == "" })
-            || hextets.count { it == "" } > 1)
-            return INVALID
-        if (len < 8) {
-            var insertions = 8 - len
-            val lastIndex = kotlin.math.min(hextets.lastIndex, 7)
-            for (i in 0..lastIndex) {
-                if (hextets[i] == "") {
-                    hextets[i] = "0"
-                    while (insertions-- > 0) hextets.add(i, "0") 
-                    break 
-                }
-            }
-        }
-        for (j in 0..7) {
-            val num = hextets[j].toLongOrNull(16)
-            if (num == null || num !in 0x0..0xFFFF) return INVALID
-            val bigNum = BigInteger.valueOf(num)
-            address = address.or(bigNum.shiftLeft(j * 16))
-        }   
-    }
-    else return INVALID
 
-    // -> (IP, "IPv4"/"IPv6", -1 если не указан)
-    return IPAddressComponents(address, addressSpace, port)
+    val lastAddressPart = octets[0].toInt()
+
+    // Возвращаем
+    // -> (nodeIP, pointIndex, "IPv4", -1 если не указан)
+    return IPAddressComponents(
+        address,
+        lastAddressPart
+        )
 }
