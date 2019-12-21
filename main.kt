@@ -18,7 +18,7 @@ var DEBUG: Boolean = true
 
 
 // Результат выполнения
-var ipMap = mutableMapOf<BigInteger, BigInteger>()
+var ipMap = mutableMapOf<Long, BigInteger>()
 var ipCount: Int = 0
 val powerOf2 = mutableMapOf<Int, BigInteger>()
 
@@ -106,11 +106,11 @@ fun initPowerOf2()
 }
 
 
-fun getNodeState(addressToNode: BigInteger): BigInteger =
+fun getNodeState(addressToNode: Long): BigInteger =
     ipMap[addressToNode] ?: BigInteger.ZERO
 
 
-fun setNodeState( addressToNode: BigInteger, stateNew: BigInteger )
+fun setNodeState( addressToNode: Long, stateNew: BigInteger )
 {
     ipMap[addressToNode] = stateNew
 }
@@ -120,7 +120,7 @@ fun getStateWithPoint(nodeState: BigInteger, addressToPoint: Int): BigInteger =
     nodeState.or(powerOf2[addressToPoint])
 
 
-fun setNodeWithPointState(addressToNode: BigInteger, stateNew: BigInteger?)
+fun setNodeWithPointState(addressToNode: Long, stateNew: BigInteger?)
 {
     ipMap[addressToNode] = stateNew ?: BigInteger.ZERO
 }
@@ -165,17 +165,17 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
 enum class AddressSpace { IPv4, IPv6, Invalid }
 
 data class IPAddressComponents(
-    val addressToNode   : BigInteger,
+    val addressToNode   : Long,
     val addressToPoint  : Int
 )
 
-val INVALID = IPAddressComponents(BigInteger.ZERO, 0)
+val INVALID = IPAddressComponents(0, 0)
 
 /**
  * Может быть только IPv4
  */
 fun ipAddressParse(ipAddress: String): IPAddressComponents {
-    var address = BigInteger.ZERO
+    var nodeAddress: Long = 0
 
     // Разбиваем адрес на куски
     val octets = ipAddress.split('.').reversed().toTypedArray()
@@ -183,8 +183,9 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
     // Вычисляем хэш
     for (i in 1..3) {
         val num = octets[i].toLong()
-        val bigNum = BigInteger.valueOf(num)
-        address = address.or(bigNum.shiftLeft((i - 1) * 8))
+        nodeAddress = nodeAddress.or(
+            num shl ((i - 1) * 8)
+            )
     }
 
     val lastAddressPart = octets[0].toInt()
@@ -192,7 +193,7 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
     // Возвращаем
     // -> (nodeIP, pointIndex, "IPv4", -1 если не указан)
     return IPAddressComponents(
-        address,
+        nodeAddress,
         lastAddressPart
         )
 }
