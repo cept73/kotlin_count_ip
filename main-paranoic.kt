@@ -13,7 +13,7 @@ import java.math.BigInteger // Будем вместо хэшей засовыв
 
 
 // Конфигурация
-val DEFAULT_INPUT_FILENAME: String = "ips-list.txt"
+val DEFAULT_INPUT_FILENAME: String = "ips-with-errors.txt"
 val DEBUG: Boolean = true
 
 
@@ -24,7 +24,7 @@ var ipCount: Int = 0
 
 /**
  * Главная программа
- * 
+ *
  * @params аргументы коммандной строки
  */
 fun main(args: Array<String>) {
@@ -105,7 +105,7 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
 
 /*
  * Готовим парсинг IP
- * 
+ *
  * Можно было бы вычислять стандартные хэши строк (как это возможно было
  * сделано ранее через HashSet), но во-первых это не оригинально по условиям
  * задачи, во-вторых программа не распознает, что указан порт в конце например
@@ -116,13 +116,13 @@ private fun parseFileLines(fileName: String, parser: (message: Any?) -> Unit) =
  * можно часть проверок поотключать. Хотя мало ли что в файл введут?
  */
 enum class AddressSpace { IPv4, IPv6, Invalid }
-    
+
 data class IPAddressComponents(
     val address         : BigInteger,
     val addressSpace    : AddressSpace,
     val port            : Int  // -1 значит 'не указан'
 )
-   
+
 val INVALID = IPAddressComponents(BigInteger.ZERO, AddressSpace.Invalid, 0)
 
 /**
@@ -161,14 +161,14 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
         addressSpace = AddressSpace.IPv6
         trans = true
         ipa = ipa.drop(8).replace("]", "")
-    } 
+    }
     val octets = ipa.split('.').reversed().toTypedArray()
     var address = BigInteger.ZERO
     if (octets.size == 4) {
         val split = octets[0].split(':')
         if (split.size == 2) {
             val temp = split[1].toIntOrNull()
-            if (temp == null || temp !in 0..65535) return INVALID                
+            if (temp == null || temp !in 0..65535) return INVALID
             port = temp
             octets[0] = split[0]
         }
@@ -195,11 +195,11 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
         }
         val hextets = ipa.split(':').reversed().toMutableList()
         val len = hextets.size
-        if (ipa.startsWith("::")) 
+        if (ipa.startsWith("::"))
             hextets[len - 1] = "0"
-        else if (ipa.endsWith("::")) 
+        else if (ipa.endsWith("::"))
             hextets[0] = "0"
-        if (ipa == "::") hextets[1] = "0"        
+        if (ipa == "::") hextets[1] = "0"
         if (len > 8 || (len == 8 && hextets.any { it == "" })
             || hextets.count { it == "" } > 1)
             return INVALID
@@ -210,7 +210,7 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
                 if (hextets[i] == "") {
                     hextets[i] = "0"
                     while (insertions-- > 0) hextets.add(i, "0") 
-                    break 
+                    break
                 }
             }
         }
@@ -219,7 +219,7 @@ fun ipAddressParse(ipAddress: String): IPAddressComponents {
             if (num == null || num !in 0x0..0xFFFF) return INVALID
             val bigNum = BigInteger.valueOf(num)
             address = address.or(bigNum.shiftLeft(j * 16))
-        }   
+        }
     }
     else return INVALID
 
