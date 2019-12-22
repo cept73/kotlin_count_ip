@@ -4,6 +4,11 @@
 
 Test task to count distinct IPs inside file
 
+## Requirements
+
+To install `kotlin` you may to `snap install --classic kotlin`
+(all variants in [Kotlin documentation](https://kotlinlang.org/docs/tutorials/command-line.html))
+
 ## Config
 
 You may change config in `main.kt`. 
