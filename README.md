@@ -14,9 +14,10 @@ To install `kotlin` you may to `snap install --classic kotlin`
 You may change config in `main.kt`. 
 Defaults are:
 ```
-val DEFAULT_INPUT_FILENAME = "ips-list.txt"
-val DEBUG = true
+DEFAULT_INPUT_FILENAME = "ips-list.txt"
+debugMode = true
 ```
+Debug automatically turned off after 10 founded IPs
 
 ## Using
 
